@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Table, Tag, Layout, Button } from "antd";
 import { apiClient } from "../api/client";
@@ -13,13 +14,24 @@ interface Alert {
   disposition?: { status: string };
 }
 
+interface PaginatedResponse {
+  data: Alert[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export function QueuePage() {
   const { logout } = useAuth();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["alerts"],
+    queryKey: ["alerts", page, limit],
     queryFn: async () => {
-      const response = await apiClient.get<Alert[]>("/alerts");
+      const response = await apiClient.get<PaginatedResponse>("/alerts", {
+        params: { page, limit },
+      });
       return response.data;
     },
   });
@@ -59,9 +71,18 @@ export function QueuePage() {
       <Content style={{ padding: 24 }}>
         <Table
           columns={columns}
-          dataSource={data}
+          dataSource={data?.data}
           rowKey="id"
           loading={isLoading}
+          pagination={{
+            current: page,
+            pageSize: limit,
+            total: data?.total,
+            onChange: (newPage, newLimit) => {
+              setPage(newPage);
+              setLimit(newLimit);
+            },
+          }}
         />
         {error && <p>Failed to load alerts.</p>}
       </Content>
