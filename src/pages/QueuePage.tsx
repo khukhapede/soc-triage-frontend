@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Table, Tag, Layout, Button } from "antd";
 import { apiClient } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { AlertDrawer } from "../components/AlertDrawer";
 
 const { Header, Content } = Layout;
 
@@ -25,6 +26,8 @@ export function QueuePage() {
   const { logout } = useAuth();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["alerts", page, limit],
@@ -74,6 +77,13 @@ export function QueuePage() {
           dataSource={data?.data}
           rowKey="id"
           loading={isLoading}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelectedId(record.id);
+              setDrawerOpen(true);
+            },
+            style: { cursor: "pointer" },
+          })}
           pagination={{
             current: page,
             pageSize: limit,
@@ -83,6 +93,11 @@ export function QueuePage() {
               setLimit(newLimit);
             },
           }}
+        />
+        <AlertDrawer
+          alertId={selectedId}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
         />
         {error && <p>Failed to load alerts.</p>}
       </Content>
