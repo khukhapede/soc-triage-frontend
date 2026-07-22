@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Table, Tag, Layout, Button } from "antd";
+import { Table, Tag, Layout } from "antd";
 import { apiClient } from "../api/client";
-import { useAuth } from "../auth/AuthContext";
 import { AlertDrawer } from "../components/AlertDrawer";
+import { AppLayout } from "../components/AppLayout";
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 
 interface Alert {
   id: string;
@@ -23,7 +23,6 @@ interface PaginatedResponse {
 }
 
 export function QueuePage() {
-  const { logout } = useAuth();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -60,17 +59,7 @@ export function QueuePage() {
   ];
 
   return (
-    <Layout>
-      <Header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <span style={{ color: "white" }}>SOC Triage Dashboard</span>
-        <Button onClick={logout}>Log out</Button>
-      </Header>
+    <AppLayout>
       <Content style={{ padding: 24 }}>
         <Table
           columns={columns}
@@ -101,6 +90,6 @@ export function QueuePage() {
         />
         {error && <p>Failed to load alerts.</p>}
       </Content>
-    </Layout>
+    </AppLayout>
   );
 }
