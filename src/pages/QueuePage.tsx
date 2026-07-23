@@ -1,10 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Table, Tag, Select, Slider, Space, Typography } from "antd";
+import {
+  Table,
+  Tag,
+  Select,
+  Slider,
+  Space,
+  Typography,
+  DatePicker,
+  Button,
+} from "antd";
 import { apiClient } from "../api/client";
 import { AlertDrawer } from "../components/AlertDrawer";
 import { AppLayout } from "../components/AppLayout";
-
+import dayjs, { Dayjs } from "dayjs";
 interface Alert {
   id: string;
   ruleLevel: number;
@@ -31,6 +40,9 @@ export function QueuePage() {
   );
   const [minScore, setMinScore] = useState<number>(0);
   const [timeSort, setTimeSort] = useState<"ASC" | "DESC">("DESC");
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["alerts", page, limit, statusFilter, minScore, timeSort],
@@ -42,6 +54,8 @@ export function QueuePage() {
           status: statusFilter,
           minScore: minScore > 0 ? minScore : undefined,
           timeSort,
+          startDate: dateRange?.[0]?.startOf("day").toISOString(),
+          endDate: dateRange?.[1]?.endOf("day").toISOString(),
         },
       });
       return response.data;
@@ -128,6 +142,45 @@ export function QueuePage() {
             onChange={handleScoreChange}
           />
         </div>
+        <div>
+          <Typography.Text style={{ marginRight: 8 }}>
+            Date range
+          </Typography.Text>
+          <DatePicker.RangePicker
+            value={dateRange}
+            onChange={(dates) => {
+              setDateRange(dates as [Dayjs | null, Dayjs | null] | null);
+              setPage(1);
+            }}
+          />
+        </div>
+
+        <Space.Compact>
+          <Button
+            onClick={() => {
+              setDateRange([dayjs().startOf("day"), dayjs().endOf("day")]);
+              setPage(1);
+            }}
+          >
+            Today
+          </Button>
+          <Button
+            onClick={() => {
+              setDateRange([dayjs().subtract(7, "day"), dayjs()]);
+              setPage(1);
+            }}
+          >
+            Last 7 days
+          </Button>
+          <Button
+            onClick={() => {
+              setDateRange(null);
+              setPage(1);
+            }}
+          >
+            Clear
+          </Button>
+        </Space.Compact>
       </Space>
       {/* Table */}
       <Table
@@ -135,10 +188,19 @@ export function QueuePage() {
         dataSource={data?.data}
         rowKey="id"
         loading={isLoading}
-        onChange={(_, __, sorter) => {
-          if (!Array.isArray(sorter) && sorter.field === "alertTime") {
+        onChange={(paginationInfo, _filters, sorter, extra) => {
+          if (
+            extra.action === "sort" &&
+            !Array.isArray(sorter) &&
+            sorter.field === "alertTime"
+          ) {
             setTimeSort(sorter.order === "ascend" ? "ASC" : "DESC");
             setPage(1);
+          }
+
+          if (extra.action === "paginate") {
+            setPage(paginationInfo.current ?? 1);
+            setLimit(paginationInfo.pageSize ?? 20);
           }
         }}
         onRow={(record) => ({
@@ -152,10 +214,6 @@ export function QueuePage() {
           current: page,
           pageSize: limit,
           total: data?.total,
-          onChange: (newPage, newLimit) => {
-            setPage(newPage);
-            setLimit(newLimit);
-          },
         }}
       />
       <AlertDrawer
